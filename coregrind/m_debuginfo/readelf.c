@@ -2181,14 +2181,20 @@ Bool ML_(read_elf_debug_info) ( struct _DebugInfo* di )
 
       /* Accept .rodata where mapped as rx (data), even if zero-sized */
       if (0 == VG_(strcmp)(name, ".rodata")) {
-         if (inrx && !di->rodata_present) {
+         if (!di->rodata_present) {
             di->rodata_present = True;
             di->rodata_svma = svma;
-            di->rodata_avma = svma + inrx->bias;
+            di->rodata_avma = svma;
             di->rodata_size = size;
-            di->rodata_bias = inrx->bias;
+	    if (inrx) {
+	      di->rodata_avma += inrx->bias;
+	      di->rodata_bias = inrx->bias;
+	      di->rodata_debug_bias = inrx->bias;
+	    } else {
+	      di->rodata_bias = 0;
+	      di->rodata_debug_bias = 0;
+	    }
             di->rodata_debug_svma = svma;
-            di->rodata_debug_bias = inrx->bias;
                                     /* NB was 'inrw' prior to r11794 */
             TRACE_SYMTAB("acquiring .rodata svma = %#lx .. %#lx\n",
                          di->rodata_svma,
