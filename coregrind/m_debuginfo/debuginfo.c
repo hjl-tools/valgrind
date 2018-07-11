@@ -654,8 +654,9 @@ static void check_CFSI_related_invariants ( const DebugInfo* di )
    /* This fn isn't called until after debuginfo for this object has
       been successfully read.  And that shouldn't happen until we have
       both a r-x and rw- mapping for the object.  Hence: */
-   vg_assert(di->fsm.have_rx_map);
-   vg_assert(di->fsm.have_rw_map);
+   vg_assert(di->fsm.have_rx_map
+	     || di->fsm.have_rw_map
+	     || di->fsm.have_ro_map);
    for (i = 0; i < VG_(sizeXA)(di->fsm.maps); i++) {
       const DebugInfoMapping* map = VG_(indexXA)(di->fsm.maps, i);
       /* We are interested in r-x mappings only */
@@ -1222,7 +1223,10 @@ ULong VG_(di_notify_mmap)( Addr a, Bool allow_SkFileV, Int use_fd )
    di->fsm.have_ro_map |= is_ro_map;
 
    /* So, finally, are we in an accept state? */
-   if (di->fsm.have_rx_map && di->fsm.have_rw_map && !di->have_dinfo) {
+   if ((di->fsm.have_rx_map
+	|| di->fsm.have_rw_map
+	|| di->fsm.have_ro_map)
+       && !di->have_dinfo) {
       /* Ok, so, finally, we found what we need, and we haven't
          already read debuginfo for this object.  So let's do so now.
          Yee-ha! */

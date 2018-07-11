@@ -1695,8 +1695,9 @@ Bool ML_(read_elf_debug_info) ( struct _DebugInfo* di )
 #  endif
 
    vg_assert(di);
-   vg_assert(di->fsm.have_rx_map == True);
-   vg_assert(di->fsm.have_rw_map == True);
+   vg_assert(di->fsm.have_rx_map == True
+	     || di->fsm.have_rw_map == True
+	     || di->fsm.have_ro_map);
    vg_assert(di->have_dinfo == False);
    vg_assert(di->fsm.filename);
    vg_assert(!di->symtab);
