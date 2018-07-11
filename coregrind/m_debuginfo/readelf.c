@@ -1714,21 +1714,23 @@ Bool ML_(read_elf_debug_info) ( struct _DebugInfo* di )
    {
       Bool has_nonempty_rx = False;
       Bool has_nonempty_rw = False;
+      Bool has_nonempty_ro = False;
       for (i = 0; i < VG_(sizeXA)(di->fsm.maps); i++) {
          DebugInfoMapping* map = VG_(indexXA)(di->fsm.maps, i);
-         if (!map->rx && !map->rw)
+         if (!map->rx && !map->rw && !map->ro)
             continue;
          if (map->rx && map->size > 0)
             has_nonempty_rx = True;
          if (map->rw && map->size > 0)
             has_nonempty_rw = True;
+         if (map->ro && map->size > 0)
+            has_nonempty_ro = True;
          /* If this doesn't hold true, it means that m_syswrap/m_aspacemgr
             managed to do a mapping where the start isn't page aligned.
             Which sounds pretty bogus to me. */
          vg_assert(VG_IS_PAGE_ALIGNED(map->avma));
       }
-      vg_assert(has_nonempty_rx);
-      vg_assert(has_nonempty_rw);
+      vg_assert(has_nonempty_rx || has_nonempty_rw || has_nonempty_ro);
    }
 
    /* ----------------------------------------------------------
@@ -1882,7 +1884,7 @@ Bool ML_(read_elf_debug_info) ( struct _DebugInfo* di )
                Bool loaded = False;
                for (j = 0; j < VG_(sizeXA)(di->fsm.maps); j++) {
                   const DebugInfoMapping* map = VG_(indexXA)(di->fsm.maps, j);
-                  if (   (map->rx || map->rw)
+                  if (   (map->rx || map->rw | map->ro)
                       && map->size > 0 /* stay sane */
                       && a_phdr.p_offset >= map->foff
                       && a_phdr.p_offset <  map->foff + map->size
@@ -1910,6 +1912,16 @@ Bool ML_(read_elf_debug_info) ( struct _DebugInfo* di )
                         VG_(addToXA)(svma_ranges, &item);
                         TRACE_SYMTAB(
                            "PT_LOAD[%ld]:   acquired as rx, bias 0x%lx\n",
+                           i, (UWord)item.bias);
+                        loaded = True;
+                     }
+                     if (map->ro
+                         && (a_phdr.p_flags & (PF_R | PF_X | PF_W))
+                            == PF_R) {
+                        item.exec = False;
+                        VG_(addToXA)(svma_ranges, &item);
+                        TRACE_SYMTAB(
+                           "PT_LOAD[%ld]:   acquired as ro, bias 0x%lx\n",
                            i, (UWord)item.bias);
                         loaded = True;
                      }
