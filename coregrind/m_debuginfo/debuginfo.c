@@ -1110,7 +1110,7 @@ ULong VG_(di_notify_mmap)( Addr a, Bool allow_SkFileV, Int use_fd )
    */
    is_rx_map = False;
    is_rw_map = False;
-   is_ro_map = False;
+   is_ro_map = seg->hasR && !seg->hasW && !seg->hasX;
 
 #  if defined(VGA_x86) || defined(VGA_ppc32) || defined(VGA_mips32) \
       || defined(VGA_mips64)
@@ -1125,10 +1125,6 @@ ULong VG_(di_notify_mmap)( Addr a, Bool allow_SkFileV, Int use_fd )
    is_rw_map = seg->hasR && seg->hasW;
 #  else
 #    error "Unknown platform"
-#  endif
-
-#  if defined(VGP_x86_darwin) && DARWIN_VERS >= DARWIN_10_7
-   is_ro_map = seg->hasR && !seg->hasW && !seg->hasX;
 #  endif
 
 #  if defined(VGO_solaris)
